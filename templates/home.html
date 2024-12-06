@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+      MindPal+: Your Mental Health Chatbot
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css')}}"/>
+    <style>
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); } } @keyframes fadeOut { from
+      { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px);
+      } } #chat-interface.animate__fadeIn { animation: fadeIn 1s ease-out forwards;
+      } #chat-interface.animate__fadeOut { animation: fadeOut 1s ease-out forwards;
+      } .chat-message { padding: 8px; margin-bottom: 4px; }
+
+      .chat-message.user {
+          background-color: #34D399; /* Green bubble */
+          margin-left: auto;
+          color: white;
+          border-bottom-right-radius: 0;
+      }
+      .chat-message.bot {
+          background-color: #3B82F6; /* Blue bubble */
+          margin-right: auto;
+          color: white;
+          border-bottom-left-radius: 0;
+      }
+      .avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+      }
+        
+      .status-card {
+          display: flex;
+          align-items: center;
+          padding: 10px;
+          border-radius: 10px;
+          width: 100px;
+          color: white;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          margin-bottom: 10px;
+      }
+
+      .online_icon{
+          position: absolute;
+          height: 15px;
+          width: 15px;
+          background-color: #4cd137;
+          border-radius: 50%;
+          bottom: 0.2em;
+          right: 0.4em;
+          border: 1.5px solid white;
+      }
+
+      .mindfulness-tracker {
+          background-color: #f8fafc;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          margin-top: 20px;
+      }
+
+      .activity {
+          display: flex;
+          align-items: center;
+          margin-bottom: 10px;
+      }
+
+      .activity input[type="checkbox"] {
+          margin-right: 10px;
+      }
+
+      .progress-bar-container {
+          background-color: #e2e8f0;
+          border-radius: 5px;
+          margin-top: 15px;
+          height: 20px;
+          width: 100%;
+          overflow: hidden;
+      }
+
+      .progress-bar {
+          background-color: #4caf50;
+          height: 100%;
+          width: 0;
+          border-radius: 5px;
+          transition: width 0.3s ease-in-out;
+      }
+
+      .suggestions-list {
+          margin-top: 20px;
+          padding: 20px;
+          background-color: #ffffff;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      }
+
+      #report-section {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f0f4f8;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      
+    </style>
+  </head>
+  
+  <body class="bg-gray-100 h-screen antialiased leading-relaxed">
+    <div class="container mx-auto px-4">
+      <section class="text-center my-12">
+        <h1 class="text-5xl font-bold text-white">
+          MindPal+: Your Mental Health Companion
+        </h1>
+        <p class="text-white text-lg mt-3">
+          Navigate your feelings with AI-driven support.
+        </p>
+        <button onclick="toggleChat()" class="mt-8 bg-indigo-600 hover:bg-indigo-800 text-white font-bold py-3 px-6 rounded-lg transition duration-200 ease-in-out">
+          Start Conversation
+        </button>
+      </section>
+      <div id="chat-interface" class="hidden">
+        <div id="chat-history" class="bg-white shadow overflow-hidden sm:rounded-lg p-4 h-96 mb-4 overflow-y-auto">
+          <div id="status-container">
+            <div class="status-card">
+              <div style="position: relative;">
+                <img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" alt="Profile Image" style="border-radius: 50%" >
+                <div class="online_icon"></div>
+              </div>
+              <div class="info"></div>
+            </div>
+          </div>
+          <!-- Chat messages will be displayed here -->
+        </div>
+        <div class="flex flex-row items-center">
+          <input type="text" id="user-input" placeholder="Express your feelings here..."
+          class="flex-grow border-gray-300 p-3 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button onclick="sendInput()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-r-lg transition duration-150 ease-in-out">
+            Send
+          </button>
+        </div>
+      </div>
+
+      <!-- Mood Tracker Section -->
+      <div id="mood-tracker" class="text-center p-4 mt-8 bg-gray-100 rounded-lg shadow-md">
+          <h3 class="text-lg font-bold mb-4">How are you feeling today?</h3>
+          <div class="flex justify-center space-x-4">
+              <button class="mood-button bg-green-200 p-2 rounded-lg" data-mood="Happy">😊 Happy</button>
+              <button class="mood-button bg-yellow-200 p-2 rounded-lg" data-mood="Neutral">😐 Neutral</button>
+              <button class="mood-button bg-blue-200 p-2 rounded-lg" data-mood="Sad">😢 Sad</button>
+              <button class="mood-button bg-red-200 p-2 rounded-lg" data-mood="Angry">😡 Angry</button>
+          </div>
+          <p id="mood-message" class="mt-4"></p>
+      </div>
+      <button id="generate-report-button" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Generate Report</button>
+      </div>
+    <div id="report-section" class="hidden">
+        <h3 class="text-lg font-bold">Mood Report</h3>
+        <p id="report-content"></p>
+    </div>
+
+
+
+    <div id="chart-section" class="hidden">
+      <canvas id="moodChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          console.log("JavaScript is running!");
+
+          const moodButtons = document.querySelectorAll('.mood-button');
+          const moodMessage = document.getElementById('mood-message');
+          const generateReportButton = document.getElementById('generate-report-button');
+          const reportSection = document.getElementById('report-section');
+          const reportContent = document.getElementById('report-content');
+          const chartSection = document.getElementById('chart-section');
+          const moodChartCtx = document.getElementById('moodChart').getContext('2d');
+
+          // Load saved mood when the page loads
+          loadMood();
+
+          moodButtons.forEach(button => {
+              button.addEventListener('click', function() {
+                  const selectedMood = this.getAttribute('data-mood');
+                  moodMessage.innerText = `You are feeling ${selectedMood} today.`;
+                  saveMood(selectedMood);  // Save the selected mood
+              });
+          });
+
+          generateReportButton.addEventListener('click', function() {
+              const report = generateReport();
+              reportContent.innerText = report;
+              reportSection.classList.remove('hidden');
+              generateChart();  // Generate the chart based on the mood data
+          });
+
+          function saveMood(mood) {
+              const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+              localStorage.setItem(`mood_${today}`, mood);
+              console.log(`Mood saved: ${mood} for date: ${today}`);
+          }
+
+          function loadMood() {
+              const today = new Date().toISOString().split('T')[0];
+              const savedMood = localStorage.getItem(`mood_${today}`);
+
+              if (savedMood) {
+                  moodMessage.innerText = `You are feeling ${savedMood} today.`;
+                  console.log(`Mood loaded: ${savedMood} for date: ${today}`);
+              }
+          }
+
+          // Function to get all saved moods and generate a report
+          function generateReport() {
+              const moods = {};
+              for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key.startsWith('mood_')) {
+                      const mood = localStorage.getItem(key);
+                      if (moods[mood]) {
+                          moods[mood]++;
+                      } else {
+                          moods[mood] = 1;
+                      }
+                  }
+              }
+
+              let report = "Mood Summary:\n";
+              for (const mood in moods) {
+                  report += `${mood}: ${moods[mood]} times\n`;
+              }
+
+              console.log("Generated report:", report);
+              return report;
+          }
+
+          // Function to generate the chart
+          function generateChart() {
+              const moods = {};
+              for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key.startsWith('mood_')) {
+                      const mood = localStorage.getItem(key);
+                      if (moods[mood]) {
+                          moods[mood]++;
+                      } else {
+                          moods[mood] = 1;
+                      }
+                  }
+              }
+
+              const labels = Object.keys(moods);
+              const data = Object.values(moods);
+
+              const moodChart = new Chart(moodChartCtx, {
+                  type: 'bar',
+                  data: {
+                      labels: labels,
+                      datasets: [{
+                          label: '# of Times Selected',
+                          data: data,
+                          backgroundColor: [
+                              'rgba(75, 192, 192, 0.2)',
+                              'rgba(255, 206, 86, 0.2)',
+                              'rgba(54, 162, 235, 0.2)',
+                              'rgba(255, 99, 132, 0.2)'
+                          ],
+                          borderColor: [
+                              'rgba(75, 192, 192, 1)',
+                              'rgba(255, 206, 86, 1)',
+                              'rgba(54, 162, 235, 1)',
+                              'rgba(255, 99, 132, 1)'
+                          ],
+                          borderWidth: 1
+                      }]
+                  },
+                  options: {
+                      scales: {
+                          y: {
+                              beginAtZero: true
+                          }
+                      }
+                  }
+              });
+
+              chartSection.classList.remove('hidden');
+          }
+      });
+    </script>
+
+      <!-- Suggestions List Section -->
+      <div id="suggestions-list" class="suggestions-list hidden">
+        <h2>Suggestions to Improve:</h2>
+        <p>
+          
+        </p>
+        
+          <!-- Suggestions will be appended here dynamically -->
+      </div>
+    </div>
+    
+    <script src="/static/script.js"></script>
+    <script>
+      function toggleChat() {
+          const chatInterface = document.getElementById('chat-interface');
+          const section = document.querySelector('section');
+          if (chatInterface.classList.contains('hidden')) {
+              section.classList.add('animate__fadeOut');
+              chatInterface.classList.remove('hidden', 'animate__fadeOut');
+              chatInterface.classList.add('animate__fadeIn');
+          } else {
+              chatInterface.classList.replace('animate__fadeIn', 'animate__fadeOut');
+              setTimeout(() => {
+                  chatInterface.classList.add('hidden');
+                  section.classList.remove('animate__fadeOut');
+              }, 1000);  // Timeout matches animation duration
+          }
+      }
+
+      async function sendInput() {
+          const userInput = document.getElementById('user-input').value;
+          if (userInput.trim() === "") return;
+
+          // Display user's input as a chat message
+          const chatHistory = document.getElementById('chat-history');
+          const userMessage = document.createElement('div');
+          userMessage.className = 'chat-message user';
+          userMessage.innerText = userInput;
+          chatHistory.appendChild(userMessage);
+          
+          // Call OpenAI API to get suggestions
+          const response = await fetch('/get_suggestions', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ message: userInput })
+          });
+          
+          const data = await response.json();
+          const suggestions = data.suggestions;
+          
+          // Display suggestions in the list
+          const suggestionsList = document.getElementById('suggestions-list');
+          const suggestionsUl = document.getElementById('suggestions-ul');
+          suggestionsUl.innerHTML = "";  // Clear previous suggestions
+
+          suggestions.forEach(suggestion => {
+              const li = document.createElement('li');
+              li.innerText = suggestion;
+              suggestionsUl.appendChild(li);
+          });
+
+          suggestionsList.classList.remove('hidden');  // Show the suggestions list
+          
+          // Scroll to the bottom of chat history
+          chatHistory.scrollTop = chatHistory.scrollHeight;
+
+          // Clear the input
+          document.getElementById('user-input').value = '';
+        
+      }
+    </script>
+  </body>
+</html>
